@@ -10,8 +10,12 @@ gem install git-whence
 Usage
 =====
 
-```Ruby
-CODE EXAMPLE
+```Bash
+git-whence 6d37485
+Merge pull request #10486 from foo/bar
+
+git-whence 6d37485 -o
+-> open browser on github pull request page
 ```
 
 Alternatives

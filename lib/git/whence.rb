@@ -12,9 +12,14 @@ module Git::Whence
           return 1
         end
 
-        simple = find_merge(commit, "HEAD") || find_merge(commit, "master")
-        if simple
-          puts simple
+        merge = find_merge(commit)
+        if merge
+          if options[:open] && (pr = merge[/Merge pull request #(\d+) from /, 1]) && (url = origin)
+            repo = url[%r{(\w+/[-\w\.]+)}i, 1].to_s.sub(/\.git$/, "")
+            exec %Q{open "https://github.com/#{repo}/pull/#{pr}"}
+          else
+            puts merge
+          end
           0
         else
           $stderr.puts "Unable to find commit"
@@ -24,7 +29,16 @@ module Git::Whence
 
       private
 
-      def find_merge(commit, branch)
+      def origin
+        remotes = sh("git remote -v").split("\n")
+        remotes.detect { |l| l.start_with?("origin\t") }.split(" ")[1]
+      end
+
+      def find_merge(commit)
+        find_merge_simple(commit, "HEAD") || find_merge(commit, "master")
+      end
+
+      def find_merge_simple(commit, branch)
         result = sh "git log #{commit}..#{branch} --ancestry-path --merges --oneline 2>/dev/null | tail -n 1"
         result unless result.strip.empty?
       end
