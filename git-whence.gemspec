@@ -1,5 +1,6 @@
 name = "git-whence"
-require "./lib/#{name.gsub("-","/")}/version"
+$LOAD_PATH << File.expand_path("../lib", __FILE__)
+require "#{name.gsub("-","/")}/version"
 
 Gem::Specification.new name, Git::Whence::VERSION do |s|
   s.summary = "Find the merge and pull request a commit came from + find cherry-picks"
