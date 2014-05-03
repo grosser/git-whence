@@ -6,22 +6,28 @@ module Git::Whence
     class << self
       def run(argv)
         options = parse_options(argv)
+        commit = argv[0]
         unless system("git rev-parse --git-dir 1>&2>/dev/null")
           puts "Not in a git directory"
           return 1
         end
 
-        simple = sh "git log #{argv[0]}..master --ancestry-path --merges --oneline 2>/dev/null | tail -n 1"
-        if simple.strip.empty?
-          $stderr.puts "Unable to find commit"
-          1
-        else
+        simple = find_merge(commit, "HEAD") || find_merge(commit, "master")
+        if simple
           puts simple
           0
+        else
+          $stderr.puts "Unable to find commit"
+          1
         end
       end
 
       private
+
+      def find_merge(commit, branch)
+        result = sh "git log #{commit}..#{branch} --ancestry-path --merges --oneline 2>/dev/null | tail -n 1"
+        result unless result.strip.empty?
+      end
 
       def sh(command)
         result = `#{command}`
