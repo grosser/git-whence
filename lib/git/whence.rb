@@ -35,7 +35,24 @@ module Git::Whence
       end
 
       def find_merge(commit)
-        find_merge_simple(commit, "HEAD") || find_merge(commit, "master")
+        find_merge_simple(commit, "HEAD") ||
+          find_merge_simple(commit, "master") ||
+          find_merge_fuzzy(commit, "master")
+      end
+
+      def find_merge_fuzzy(commit, branch)
+        if similar = find_similar(commit, branch)
+          find_merge_simple(similar, branch)
+        end
+      end
+
+      def find_similar(commit, branch)
+        month = 30 * 24 * 60 * 60
+        time, search = sh("git show -s --format='%ct %an %s' #{commit}").strip.split(" ", 2)
+        time = time.to_i
+        same = sh("git log #{branch} --pretty=format:'%h %an %s' --before #{time + month} --after #{time - month}")
+        found = same.split("\n").map { |x| x.split(" ", 2) }.detect { |commit, message| message == search }
+        found && found.first
       end
 
       def find_merge_simple(commit, branch)

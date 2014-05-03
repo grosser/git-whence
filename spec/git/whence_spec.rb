@@ -54,6 +54,23 @@ describe Git::Whence do
         whence(commit).should == "#{merge} Merge branch 'foobar'\n"
       end
     end
+
+    context "fuzzy find" do
+      before do
+        init_git
+        @merge, commit = add_merge
+        pick_commit(commit)
+      end
+
+      it "finds by commit message" do
+        whence("HEAD").should == "#{@merge} Merge branch 'foobar'\n"
+      end
+
+      it "does not find from different author" do
+        sh "git commit --amend -C HEAD --author 'New Author Name <email@address.com>'"
+        whence("HEAD", :fail => true)
+      end
+    end
   end
 
   def write(file, content)
@@ -80,8 +97,12 @@ describe Git::Whence do
     if message = options[:message]
       message = "-m '#{message}'"
     end
-    sh("git co -b foobar 2>&1 && git commit -m 'xxx' --allow-empty && git checkout #{options[:branch] || "master"} 2>&1 && git merge foobar --no-ff #{message}")
+    sh("git co -b foobar 2>&1 && echo asd > xxx && git commit -am 'xxx' && git checkout #{options[:branch] || "master"} 2>&1 && git merge foobar --no-ff #{message}")
     commits = sh("git log --pretty=format:'%h' | head -3").split("\n")
     return commits[0], commits[2]
+  end
+
+  def pick_commit(commit)
+    sh("git checkout HEAD^ 2>&1 && git checkout -b production 2>&1 && git cherry-pick #{commit}")
   end
 end
