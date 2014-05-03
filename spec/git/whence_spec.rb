@@ -97,7 +97,7 @@ describe Git::Whence do
     if message = options[:message]
       message = "-m '#{message}'"
     end
-    sh("git co -b foobar 2>&1 && echo asd > xxx && git commit -am 'xxx' && git checkout #{options[:branch] || "master"} 2>&1 && git merge foobar --no-ff #{message}")
+    sh("git checkout -b foobar 2>&1 && echo asd > xxx && git commit -am 'xxx' && git checkout #{options[:branch] || "master"} 2>&1 && git merge foobar --no-ff #{message}")
     commits = sh("git log --pretty=format:'%h' | head -3").split("\n")
     return commits[0], commits[2]
   end

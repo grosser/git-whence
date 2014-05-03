@@ -7,7 +7,7 @@ module Git::Whence
       def run(argv)
         options = parse_options(argv)
         commit = argv[0]
-        unless system("git rev-parse --git-dir 1>&2>/dev/null")
+        unless system("git rev-parse --git-dir 2>&1 >/dev/null")
           puts "Not in a git directory"
           return 1
         end
