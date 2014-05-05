@@ -12,22 +12,37 @@ module Git::Whence
           return 1
         end
 
-        merge = find_merge(commit)
-        if merge
-          if options[:open] && (pr = merge[/Merge pull request #(\d+) from /, 1]) && (url = origin)
-            repo = url[%r{(\w+/[-\w\.]+)}i, 1].to_s.sub(/\.git$/, "")
-            exec %Q{open "https://github.com/#{repo}/pull/#{pr}"}
-          else
-            puts merge
-          end
-          0
-        else
-          $stderr.puts "Unable to find commit"
+        if is_merge?(commit)
+          $stderr.puts "Commit is a merge"
+          finished_with_commit(commit, options)
           1
+        else
+          merge = find_merge(commit)
+          if merge
+            finished_with_commit(merge, options)
+            0
+          else
+            $stderr.puts "Unable to find merge"
+            1
+          end
         end
       end
 
       private
+
+      def is_merge?(commit)
+        sh("git cat-file -p #{commit}").split("\n")[1..2].grep(/parent /).size > 1
+      end
+
+      def finished_with_commit(merge, options)
+        info = sh("git show -s --oneline #{merge}").strip
+        if options[:open] && (pr = info[/Merge pull request #(\d+) from /, 1]) && (url = origin)
+          repo = url[%r{(\w+/[-\w\.]+)}i, 1].to_s.sub(/\.git$/, "")
+          exec %Q{open "https://github.com/#{repo}/pull/#{pr}"}
+        else
+          puts info
+        end
+      end
 
       def origin
         remotes = sh("git remote -v").split("\n")
@@ -56,7 +71,7 @@ module Git::Whence
       end
 
       def find_merge_simple(commit, branch)
-        result = sh "git log #{commit}..#{branch} --ancestry-path --merges --oneline 2>/dev/null | tail -n 1"
+        result = sh "git log #{commit}..#{branch} --ancestry-path --merges --pretty='%h' 2>/dev/null | tail -n 1"
         result unless result.strip.empty?
       end
 

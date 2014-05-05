@@ -71,6 +71,14 @@ describe Git::Whence do
         whence("HEAD", :fail => true)
       end
     end
+
+    context "merge find" do
+      it "finds a direct merge" do
+        init_git
+        merge, commit = add_merge
+        whence(merge, :fail => true).should == "Commit is a merge\n#{merge} Merge branch 'foobar'\n"
+      end
+    end
   end
 
   def write(file, content)
