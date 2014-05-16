@@ -53,6 +53,13 @@ describe Git::Whence do
         sh("git checkout -b production")
         whence(commit).should == "#{merge} Merge branch 'foobar'\n"
       end
+
+      it "fails with a mainline commit" do
+        init_git
+        3.times { |i| sh("echo #{i} > xxx && git commit -am 'xxx#{i}'") }
+        commit = sh("git log --pretty=format:'%h' | head -3").split("\n").last
+        whence(commit, :fail => true)
+      end
     end
 
     context "fuzzy find" do
