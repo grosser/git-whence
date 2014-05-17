@@ -50,9 +50,16 @@ module Git::Whence
       end
 
       def find_merge(commit)
-        find_merge_simple(commit, "HEAD") ||
+        commit, merge = find_merge_simple(commit, "HEAD") ||
           find_merge_simple(commit, "master") ||
           find_merge_fuzzy(commit, "master")
+
+        merge if merge && merge_include_commit?(merge, commit)
+      end
+
+      def merge_include_commit?(merge, commit)
+        commit = sh("git show HEAD -s --format=%h").strip if commit == "HEAD"
+        sh("git log #{merge.strip}^..#{merge.strip} --pretty=%h").split("\n").include?(commit)
       end
 
       def find_merge_fuzzy(commit, branch)
@@ -72,7 +79,7 @@ module Git::Whence
 
       def find_merge_simple(commit, branch)
         result = sh "git log #{commit}..#{branch} --ancestry-path --merges --pretty='%h' 2>/dev/null | tail -n 1"
-        result unless result.strip.empty?
+        [commit, result] unless result.strip.empty?
       end
 
       def sh(command)

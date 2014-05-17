@@ -57,8 +57,17 @@ describe Git::Whence do
       it "fails with a mainline commit" do
         init_git
         3.times { |i| sh("echo #{i} > xxx && git commit -am 'xxx#{i}'") }
-        commit = sh("git log --pretty=format:'%h' | head -3").split("\n").last
-        whence(commit, :fail => true)
+        result = whence(last_commits[2], :fail => true)
+        result.should == "Unable to find merge\n"
+      end
+
+      it "fails with a mainline commit after a merge" do
+        init_git
+        sh("echo 1 > xxx && git commit -am 'xxx1'")
+        commit = last_commits[0]
+        add_merge
+        result = whence(commit, :fail => true)
+        result.should == "Unable to find merge\n"
       end
     end
 
@@ -88,6 +97,10 @@ describe Git::Whence do
     end
   end
 
+  def last_commits
+    sh("git log --pretty=format:'%h' | head").split("\n")
+  end
+
   def write(file, content)
     File.open(file, "w") { |f| f.write content }
   end
@@ -113,7 +126,7 @@ describe Git::Whence do
       message = "-m '#{message}'"
     end
     sh("git checkout -b foobar 2>&1 && echo asd > xxx && git commit -am 'xxx' && git checkout #{options[:branch] || "master"} 2>&1 && git merge foobar --no-ff #{message}")
-    commits = sh("git log --pretty=format:'%h' | head -3").split("\n")
+    commits = last_commits
     return commits[0], commits[2]
   end
 
