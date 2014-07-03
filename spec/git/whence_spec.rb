@@ -24,6 +24,11 @@ describe Git::Whence do
       whence("ssdfsfdfd", :fail => true).should include "Not in a git directory\n"
     end
 
+    it "fails without commit" do
+      init_git
+      whence("1231231231", :fail => true).should include "unknown revision or path not in the working"
+    end
+
     it "opens with -o" do
       init_git
       sh("git remote add origin git@github.com:foobar/barbaz.git")
@@ -36,7 +41,13 @@ describe Git::Whence do
       it "finds a simple merge" do
         init_git
         merge, commit = add_merge
-        whence(commit).should == "#{merge} Merge branch 'foobar'\n"
+        whence(commit).should == "#{merge[0...7]} Merge branch 'foobar'\n"
+      end
+
+      it "finds a simple merge from short commit" do
+        init_git
+        merge, commit = add_merge
+        whence(commit[0...6]).should == "#{merge[0...7]} Merge branch 'foobar'\n"
       end
 
       it "finds a simple merge on a non-master branch" do
@@ -44,14 +55,14 @@ describe Git::Whence do
         sh("git checkout -b production")
         merge, commit = add_merge :branch => "production"
         sh("git checkout production")
-        whence(commit).should == "#{merge} Merge branch 'foobar' into production\n"
+        whence(commit).should == "#{merge[0...7]} Merge branch 'foobar' into production\n"
       end
 
       it "finds a simple master merge on a non-master branch" do
         init_git
         merge, commit = add_merge
         sh("git checkout -b production")
-        whence(commit).should == "#{merge} Merge branch 'foobar'\n"
+        whence(commit).should == "#{merge[0...7]} Merge branch 'foobar'\n"
       end
 
       it "fails with a mainline commit" do
@@ -79,7 +90,7 @@ describe Git::Whence do
       end
 
       it "finds by commit message" do
-        whence("HEAD").should == "#{@merge} Merge branch 'foobar'\n"
+        whence("HEAD").should == "#{@merge[0...7]} Merge branch 'foobar'\n"
       end
 
       it "does not find from different author" do
@@ -92,13 +103,13 @@ describe Git::Whence do
       it "finds a direct merge" do
         init_git
         merge, commit = add_merge
-        whence(merge, :fail => true).should == "Commit is a merge\n#{merge} Merge branch 'foobar'\n"
+        whence(merge, :fail => true).should == "Commit is a merge\n#{merge[0...7]} Merge branch 'foobar'\n"
       end
     end
   end
 
   def last_commits
-    sh("git log --pretty=format:'%h' | head").split("\n")
+    sh("git log --pretty=format:'%H' | head").split("\n")
   end
 
   def write(file, content)

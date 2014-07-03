@@ -12,6 +12,8 @@ module Git::Whence
           return 1
         end
 
+        commit = expand(commit)
+
         if is_merge?(commit)
           $stderr.puts "Commit is a merge"
           finished_with_commit(commit, options)
@@ -29,6 +31,10 @@ module Git::Whence
       end
 
       private
+
+      def expand(commit)
+        sh("git show #{commit} -s --format='%H'").strip
+      end
 
       def is_merge?(commit)
         sh("git cat-file -p #{commit}").split("\n")[1..2].grep(/parent /).size > 1
@@ -58,8 +64,8 @@ module Git::Whence
       end
 
       def merge_include_commit?(merge, commit)
-        commit = sh("git show HEAD -s --format=%h").strip if commit == "HEAD"
-        sh("git log #{merge.strip}^..#{merge.strip} --pretty=%h").split("\n").include?(commit)
+        commit = sh("git show HEAD -s --format=%H").strip if commit == "HEAD"
+        sh("git log #{merge.strip}^..#{merge.strip} --pretty=%H").split("\n").include?(commit)
       end
 
       def find_merge_fuzzy(commit, branch)
@@ -72,13 +78,13 @@ module Git::Whence
         month = 30 * 24 * 60 * 60
         time, search = sh("git show -s --format='%ct %an %s' #{commit}").strip.split(" ", 2)
         time = time.to_i
-        same = sh("git log #{branch} --pretty=format:'%h %an %s' --before #{time + month} --after #{time - month}")
+        same = sh("git log #{branch} --pretty=format:'%H %an %s' --before #{time + month} --after #{time - month}")
         found = same.split("\n").map { |x| x.split(" ", 2) }.detect { |commit, message| message == search }
         found && found.first
       end
 
       def find_merge_simple(commit, branch)
-        result = sh "git log #{commit}..#{branch} --ancestry-path --merges --pretty='%h' 2>/dev/null | tail -n 1"
+        result = sh "git log #{commit}..#{branch} --ancestry-path --merges --pretty='%H' 2>/dev/null | tail -n 1"
         [commit, result] unless result.strip.empty?
       end
 
