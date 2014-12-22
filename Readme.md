@@ -7,6 +7,12 @@ Install
 gem install git-whence
 ```
 
+or as standalone binary (needs any ruby)
+
+```Bash
+curl https://rubinjam.herokuapp.com/pack/git-whence > git-whence && chmod +x git-whence
+```
+
 Usage
 =====
 
