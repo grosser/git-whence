@@ -10,7 +10,9 @@ gem install git-whence
 or as standalone binary (needs any ruby)
 
 ```Bash
-curl https://rubinjam.herokuapp.com/pack/git-whence > git-whence && chmod +x git-whence
+curl -sL https://github.com/grosser/git-whence/releases/download/v0.0.0/git-autobisect > /usr/local/bin/git-whence && \
+chmod +x /usr/local/bin/git-whence && \
+git-whence --version
 ```
 
 Usage
