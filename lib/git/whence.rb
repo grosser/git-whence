@@ -79,7 +79,7 @@ module Git::Whence
         time, search = sh("git show -s --format='%ct %an %s' #{commit}").strip.split(" ", 2)
         time = time.to_i
         same = sh("git log #{branch} --pretty=format:'%H %an %s' --before #{time + month} --after #{time - month}")
-        found = same.split("\n").map { |x| x.split(" ", 2) }.detect { |commit, message| message == search }
+        found = same.split("\n").map { |x| x.split(" ", 2) }.detect { |_, message| message == search }
         found && found.first
       end
 
@@ -90,7 +90,7 @@ module Git::Whence
 
       def sh(command)
         result = `#{command}`
-        raise unless $?.success?
+        raise "Command failed\n#{command}\n#{result}" unless $?.success?
         result
       end
 
