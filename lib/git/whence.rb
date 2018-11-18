@@ -42,17 +42,18 @@ module Git::Whence
 
       def finished_with_commit(merge, options)
         info = sh("git show -s --oneline #{merge}").strip
-        if options[:open] && (pr = info[/Merge pull request #(\d+) from /, 1]) && (url = origin)
-          repo = url[%r{(\w+/[-\w\.]+)}i, 1].to_s.sub(/\.git$/, "")
+        if options[:open] && (pr = info[/Merge pull request #(\d+) from /, 1]) && (repo = origin)
           exec "open", "https://github.com/#{repo}/pull/#{pr}"
         else
           puts info
         end
       end
 
+      # https://github.com/foo/bar or git@github.com:foo/bar.git -> foo/bar
       def origin
-        remotes = sh("git remote -v").split("\n")
-        remotes.detect { |l| l.start_with?("origin\t") }.split(" ")[1]
+        repo = sh("git remote get-url origin").strip
+        repo.sub!(/\.git$/, "")
+        repo.split(/[:\/]/).last(2).join("/")
       end
 
       def find_merge(commit)

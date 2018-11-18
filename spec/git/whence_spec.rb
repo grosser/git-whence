@@ -33,7 +33,7 @@ describe Git::Whence do
       init_git
       sh("git remote add origin git@github.com:foobar/barbaz.git")
       merge, commit = add_merge :message => "Merge pull request #10486 from foo/baz"
-      Git::Whence::CLI.should_receive(:exec).with("open \"https://github.com/foobar/barbaz/pull/10486\"")
+      Git::Whence::CLI.should_receive(:exec).with("open", "https://github.com/foobar/barbaz/pull/10486")
       Git::Whence::CLI.run([commit, "-o"]) # cannot be tested via cli because it opens the browser
     end
 
