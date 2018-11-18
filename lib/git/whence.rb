@@ -8,23 +8,21 @@ module Git::Whence
         options = parse_options(argv)
         commit = argv[0]
         unless system("git rev-parse --git-dir 2>&1 >/dev/null")
-          puts "Not in a git directory"
+          warn "Not in a git directory"
           return 1
         end
 
         commit = expand(commit)
 
         if is_merge?(commit)
-          $stderr.puts "Commit is a merge"
+          warn "Commit is a merge"
           finished_with_commit(commit, options)
-          1
         else
           merge = find_merge(commit)
           if merge
             finished_with_commit(merge, options)
-            0
           else
-            $stderr.puts "Unable to find merge"
+            warn "Unable to find merge"
             1
           end
         end
@@ -42,10 +40,16 @@ module Git::Whence
 
       def finished_with_commit(merge, options)
         info = sh("git show -s --oneline #{merge}").strip
-        if options[:open] && (pr = info[/Merge pull request #(\d+) from /, 1]) && (repo = origin)
-          exec "open", "https://github.com/#{repo}/pull/#{pr}"
+        if options[:open]
+          if pr = info[/Merge pull request #(\d+) from /, 1]
+            exec "open", "https://github.com/#{origin}/pull/#{pr}"
+          else
+            warn "Unable to find PR number in #{info}"
+            exec "open", "https://github.com/#{origin}/commit/#{merge}"
+          end
         else
           puts info
+          0
         end
       end
 
@@ -57,9 +61,11 @@ module Git::Whence
       end
 
       def find_merge(commit)
-        commit, merge = find_merge_simple(commit, "HEAD") ||
+        commit, merge = (
+          find_merge_simple(commit, "HEAD") ||
           find_merge_simple(commit, "master") ||
           find_merge_fuzzy(commit, "master")
+        )
 
         merge if merge && merge_include_commit?(merge, commit)
       end
@@ -86,7 +92,7 @@ module Git::Whence
 
       def find_merge_simple(commit, branch)
         result = sh "git log #{commit}..#{branch} --ancestry-path --merges --pretty='%H' 2>/dev/null | tail -n 1"
-        [commit, result] unless result.strip.empty?
+        [commit, result.strip] unless result.strip.empty?
       end
 
       def sh(command)

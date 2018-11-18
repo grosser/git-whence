@@ -29,12 +29,32 @@ describe Git::Whence do
       whence("1231231231", :fail => true).should include "unknown revision or path not in the working"
     end
 
-    it "opens with -o" do
-      init_git
-      sh("git remote add origin git@github.com:foobar/barbaz.git")
-      merge, commit = add_merge :message => "Merge pull request #10486 from foo/baz"
-      Git::Whence::CLI.should_receive(:exec).with("open", "https://github.com/foobar/barbaz/pull/10486")
-      Git::Whence::CLI.run([commit, "-o"]) # cannot be tested via cli because it opens the browser
+    # cannot be tested via cli because it opens the browser
+    context "-o" do
+      before do
+        init_git
+        sh("git remote add origin git@github.com:foobar/barbaz.git")
+        _, @commit = add_merge :message => "Merge pull request #10486 from foo/baz"
+      end
+
+      it "opens with -o" do
+        Git::Whence::CLI.should_receive(:exec).with("open", "https://github.com/foobar/barbaz/pull/10486")
+        Git::Whence::CLI.run([@commit, "-o"])
+      end
+
+      # TODO: this prints to stderr :(
+      it "fails when unable to find origin" do
+        sh("git remote rm origin")
+        Git::Whence::CLI.should_not_receive(:exec)
+        -> { Git::Whence::CLI.run([@commit, "-o"]) }.should raise_error(RuntimeError)
+      end
+
+      it "opens commit when PR is unfindable" do
+        merge, @commit = add_merge :message => "Nope", :branch => "foobaz"
+        Git::Whence::CLI.should_receive(:warn)
+        Git::Whence::CLI.should_receive(:exec).with("open", "https://github.com/foobar/barbaz/commit/#{merge}")
+        Git::Whence::CLI.run([@commit, "-o"])
+      end
     end
 
     context "simple find" do
@@ -53,7 +73,7 @@ describe Git::Whence do
       it "finds a simple merge on a non-master branch" do
         init_git
         sh("git checkout -b production")
-        merge, commit = add_merge :branch => "production"
+        merge, commit = add_merge :base => "production"
         sh("git checkout production")
         whence(commit).should == "#{merge[0...7]} Merge branch 'foobar' into production\n"
       end
@@ -136,7 +156,9 @@ describe Git::Whence do
     if message = options[:message]
       message = "-m '#{message}'"
     end
-    sh("git checkout -b foobar 2>&1 && echo asd > xxx && git commit -am 'xxx' && git checkout #{options[:branch] || "master"} 2>&1 && git merge foobar --no-ff #{message}")
+    branch = options[:branch] || "foobar"
+    base = options[:base] || "master"
+    sh("git checkout -b #{branch} 2>&1 && echo asd >> xxx && git commit -am 'xxx' && git checkout #{base} 2>&1 && git merge #{branch} --no-ff #{message}")
     commits = last_commits
     return commits[0], commits[2]
   end
