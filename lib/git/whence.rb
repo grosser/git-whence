@@ -44,7 +44,7 @@ module Git::Whence
         info = sh("git show -s --oneline #{merge}").strip
         if options[:open] && (pr = info[/Merge pull request #(\d+) from /, 1]) && (url = origin)
           repo = url[%r{(\w+/[-\w\.]+)}i, 1].to_s.sub(/\.git$/, "")
-          exec %Q{open "https://github.com/#{repo}/pull/#{pr}"}
+          exec "open", "https://github.com/#{repo}/pull/#{pr}"
         else
           puts info
         end
