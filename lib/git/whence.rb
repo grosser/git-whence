@@ -33,7 +33,7 @@ module Git::Whence
       private
 
       def expand(commit)
-        sh("git show #{commit} -s --format='%H'").strip
+        sh("git rev-parse #{commit}").strip
       end
 
       def is_merge?(commit)
