@@ -44,16 +44,25 @@ describe Git::Whence do
 
       # TODO: this prints to stderr :(
       it "fails when unable to find origin" do
+        warn "ignore the following error message"
         sh("git remote rm origin")
         Git::Whence::CLI.should_not_receive(:exec)
         -> { Git::Whence::CLI.run([@commit, "-o"]) }.should raise_error(RuntimeError)
       end
 
-      it "opens commit when PR is unfindable" do
+      it "opens merge commit when PR is unfindable" do
         merge, @commit = add_merge :message => "Nope", :branch => "foobaz"
         Git::Whence::CLI.should_receive(:warn)
         Git::Whence::CLI.should_receive(:exec).with("open", "https://github.com/foobar/barbaz/commit/#{merge}")
         Git::Whence::CLI.run([@commit, "-o"])
+      end
+
+      it "opens regular commit" do
+        sh("git commit -am 'foo' --allow-empty")
+        commit = last_commits.first
+        Git::Whence::CLI.should_receive(:warn).exactly(2)
+        Git::Whence::CLI.should_receive(:exec).with("open", "https://github.com/foobar/barbaz/commit/#{commit}")
+        Git::Whence::CLI.run([commit, "-o"])
       end
     end
 

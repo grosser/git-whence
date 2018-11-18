@@ -23,7 +23,7 @@ module Git::Whence
             finished_with_commit(merge, options)
           else
             warn "Unable to find merge"
-            1
+            options[:open] ? finished_with_commit(commit, options) : 1
           end
         end
       end
