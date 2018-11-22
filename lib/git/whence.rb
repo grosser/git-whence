@@ -16,14 +16,17 @@ module Git::Whence
 
         if is_merge?(commit)
           warn "Commit is a merge"
-          finished_with_commit(commit, options)
+          show_commit(commit, options)
+          1
         else
           merge = find_merge(commit)
           if merge
-            finished_with_commit(merge, options)
+            show_commit(merge, options)
+            0
           else
             warn "Unable to find merge"
-            options[:open] ? finished_with_commit(commit, options) : 1
+            show_commit(commit, options) if options[:open]
+            1
           end
         end
       end
@@ -38,7 +41,7 @@ module Git::Whence
         sh("git cat-file -p #{commit}").split("\n")[1..2].grep(/parent /).size > 1
       end
 
-      def finished_with_commit(merge, options)
+      def show_commit(merge, options)
         info = sh("git show -s --oneline #{merge}").strip
         if options[:open]
           if pr = info[/Merge pull request #(\d+) from /, 1]
@@ -49,7 +52,6 @@ module Git::Whence
           end
         else
           puts info
-          0
         end
       end
 
