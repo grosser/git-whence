@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    git-whence (0.2.0)
+    git-whence (0.2.1)
 
 GEM
   remote: https://rubygems.org/
