@@ -2,9 +2,12 @@ bundler_args: ""
 before_script:
  - git config --global user.email "you@example.com"
  - git config --global user.name "Your Name"
+before_install: ruby -e "File.write('Gemfile.lock', File.read('Gemfile.lock').split('BUNDLED WITH').first)"
+branches:
+  only: master
 rvm:
-  - 2.2
   - 2.3
   - 2.4
   - 2.5
+  - 2.6
 
