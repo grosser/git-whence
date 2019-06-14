@@ -1,32 +1,32 @@
-require "spec_helper"
+require_relative "../test_helper"
 
 describe Git::Whence do
   it "has a VERSION" do
-    Git::Whence::VERSION.should =~ /^[\.\da-z]+$/
+    Git::Whence::VERSION.must_match /^[\.\da-z]+$/
   end
 
   describe "CLI" do
-    around do |example|
+    around do |test|
       Dir.mktmpdir do |dir|
-        Dir.chdir(dir, &example)
+        Dir.chdir(dir) { test.call }
       end
     end
 
     it "shows --version" do
-      whence("--version").should include(Git::Whence::VERSION)
+      whence("--version").must_include(Git::Whence::VERSION)
     end
 
     it "shows --help" do
-      whence("--help").should include("cherry-picks")
+      whence("--help").must_include("cherry-picks")
     end
 
     it "fails without git" do
-      whence("ssdfsfdfd", :fail => true).should include "Not in a git directory\n"
+      whence("ssdfsfdfd", :fail => true).must_include "Not in a git directory\n"
     end
 
     it "fails without commit" do
       init_git
-      whence("1231231231", :fail => true).should include "unknown revision or path not in the working"
+      whence("1231231231", :fail => true).must_include "unknown revision or path not in the working"
     end
 
     # cannot be tested via cli because it opens the browser
@@ -38,30 +38,32 @@ describe Git::Whence do
       end
 
       it "opens with -o" do
-        Git::Whence::CLI.should_receive(:exec).with("open", "https://github.com/foobar/barbaz/pull/10486")
+        Git::Whence::CLI.expects(:exec).with("open", "https://github.com/foobar/barbaz/pull/10486")
         Git::Whence::CLI.run([@commit, "-o"])
       end
 
-      # TODO: this prints to stderr :(
       it "fails when unable to find origin" do
-        warn "ignore the following error message"
         sh("git remote rm origin")
-        Git::Whence::CLI.should_not_receive(:exec)
-        -> { Git::Whence::CLI.run([@commit, "-o"]) }.should raise_error(RuntimeError)
+        Git::Whence::CLI.expects(:exec).never
+        _out, err = capture_subprocess_io do
+          assert_raises(RuntimeError) { Git::Whence::CLI.run([@commit, "-o"]) }
+        end
+        err.must_include "fatal: No such remote"
+        err.must_include "Unable to find PR number"
       end
 
       it "opens merge commit when PR is unfindable" do
         merge, @commit = add_merge :message => "Nope", :branch => "foobaz"
-        Git::Whence::CLI.should_receive(:warn)
-        Git::Whence::CLI.should_receive(:exec).with("open", "https://github.com/foobar/barbaz/commit/#{merge}")
+        Git::Whence::CLI.expects(:warn)
+        Git::Whence::CLI.expects(:exec).with("open", "https://github.com/foobar/barbaz/commit/#{merge}")
         Git::Whence::CLI.run([@commit, "-o"])
       end
 
       it "opens regular commit" do
         sh("git commit -am 'foo' --allow-empty")
         commit = last_commits.first
-        Git::Whence::CLI.should_receive(:warn).exactly(2)
-        Git::Whence::CLI.should_receive(:exec).with("open", "https://github.com/foobar/barbaz/commit/#{commit}")
+        Git::Whence::CLI.expects(:warn).times(2)
+        Git::Whence::CLI.expects(:exec).with("open", "https://github.com/foobar/barbaz/commit/#{commit}")
         Git::Whence::CLI.run([commit, "-o"])
       end
     end
@@ -70,13 +72,13 @@ describe Git::Whence do
       it "finds a simple merge" do
         init_git
         merge, commit = add_merge
-        whence(commit).should == "#{merge[0...7]} Merge branch 'foobar'\n"
+        whence(commit).must_equal "#{merge[0...7]} Merge branch 'foobar'\n"
       end
 
       it "finds a simple merge from short commit" do
         init_git
         merge, commit = add_merge
-        whence(commit[0...6]).should == "#{merge[0...7]} Merge branch 'foobar'\n"
+        whence(commit[0...6]).must_equal "#{merge[0...7]} Merge branch 'foobar'\n"
       end
 
       it "finds a simple merge on a non-master branch" do
@@ -84,21 +86,21 @@ describe Git::Whence do
         sh("git checkout -b production")
         merge, commit = add_merge :base => "production"
         sh("git checkout production")
-        whence(commit).should == "#{merge[0...7]} Merge branch 'foobar' into production\n"
+        whence(commit).must_equal "#{merge[0...7]} Merge branch 'foobar' into production\n"
       end
 
       it "finds a simple master merge on a non-master branch" do
         init_git
         merge, commit = add_merge
         sh("git checkout -b production")
-        whence(commit).should == "#{merge[0...7]} Merge branch 'foobar'\n"
+        whence(commit).must_equal "#{merge[0...7]} Merge branch 'foobar'\n"
       end
 
       it "fails with a mainline commit" do
         init_git
         3.times { |i| sh("echo #{i} > xxx && git commit -am 'xxx#{i}'") }
         result = whence(last_commits[2], :fail => true)
-        result.should == "Unable to find merge\n"
+        result.must_equal "Unable to find merge\n"
       end
 
       it "fails with a mainline commit after a merge" do
@@ -107,7 +109,7 @@ describe Git::Whence do
         commit = last_commits[0]
         add_merge
         result = whence(commit, :fail => true)
-        result.should == "Unable to find merge\n"
+        result.must_equal "Unable to find merge\n"
       end
     end
 
@@ -119,7 +121,7 @@ describe Git::Whence do
       end
 
       it "finds by commit message" do
-        whence("HEAD").should == "#{@merge[0...7]} Merge branch 'foobar'\n"
+        whence("HEAD").must_equal "#{@merge[0...7]} Merge branch 'foobar'\n"
       end
 
       it "does not find from different author" do
@@ -132,7 +134,7 @@ describe Git::Whence do
       it "finds a direct merge" do
         init_git
         merge, commit = add_merge
-        whence(merge, :fail => true).should == "Commit is a merge\n#{merge[0...7]} Merge branch 'foobar'\n"
+        whence(merge, :fail => true).must_equal "Commit is a merge\n#{merge[0...7]} Merge branch 'foobar'\n"
       end
     end
   end

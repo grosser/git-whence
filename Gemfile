@@ -3,5 +3,6 @@ gemspec
 
 gem "bump"
 gem "rake"
-gem "rspec", "~>2"
+gem "maxitest"
+gem "mocha"
 gem "rubinjam"

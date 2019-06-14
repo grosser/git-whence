@@ -57,7 +57,7 @@ module Git::Whence
 
       # https://github.com/foo/bar or git@github.com:foo/bar.git -> foo/bar
       def origin
-        repo = sh("git remote get-url origin").strip
+        repo = sh("git remote get-url origin").strip # TODO: read file instead
         repo.sub!(/\.git$/, "")
         repo.split(/[:\/]/).last(2).join("/")
       end
