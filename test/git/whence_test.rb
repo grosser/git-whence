@@ -56,10 +56,9 @@ describe Git::Whence do
           assert_raises(RuntimeError) { Git::Whence::CLI.run([@commit, "-o"]) }
         end
         err.must_include "fatal: No such remote"
-        err.must_include "Unable to find PR number"
       end
 
-      it "opens merge commit when PR is unfindable" do
+      it "opens merge commit when merge has no PR number" do
         merge, @commit = add_merge :message => "Nope", :branch => "foobaz"
         Git::Whence::CLI.expects(:warn)
         Git::Whence::CLI.expects(:exec).with("open", "https://github.com/foobar/barbaz/commit/#{merge}")
@@ -140,14 +139,15 @@ describe Git::Whence do
     context "merge find" do
       it "finds a direct merge" do
         init_git
-        merge, commit = add_merge
+        merge, _commit = add_merge
         whence(merge, :fail => true).must_equal "Commit is a merge\n#{merge[0...7]} Merge branch 'foobar'\n"
       end
     end
   end
 
+  # --topo-order because we need a reliable ordering when doing merge commits in the same second
   def last_commits
-    sh("git log --pretty=format:'%H' | head").split("\n")
+    sh("git log --topo-order --pretty=format:'%H' | head").split("\n")
   end
 
   def write(file, content)
@@ -170,6 +170,7 @@ describe Git::Whence do
     sh("git commit -am 'initial'")
   end
 
+  # return merge commit and merged commit
   def add_merge(options={})
     if message = options[:message]
       message = "-m '#{message}'"
@@ -178,7 +179,7 @@ describe Git::Whence do
     base = options[:base] || "master"
     sh("git checkout -b #{branch} 2>&1 && echo asd >> xxx && git commit -am 'xxx' && git checkout #{base} 2>&1 && git merge #{branch} --no-ff #{message}")
     commits = last_commits
-    return commits[0], commits[2]
+    return commits[0], commits[1]
   end
 
   def pick_commit(commit)
