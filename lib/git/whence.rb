@@ -3,6 +3,8 @@ require "optparse"
 
 module Git::Whence
   module CLI
+    SQUASH_REGEX = /\(#(\d+)\)$/
+
     class << self
       def run(argv)
         options = parse_options(argv)
@@ -19,8 +21,7 @@ module Git::Whence
           show_commit(commit, options)
           1
         else
-          merge = find_merge(commit)
-          if merge
+          if merge = find_merge(commit)
             show_commit(merge, options)
             0
           else
@@ -44,7 +45,7 @@ module Git::Whence
       def show_commit(merge, options)
         info = sh("git show -s --oneline #{merge}").strip
         if options[:open]
-          if pr = info[/Merge pull request #(\d+) from /, 1]
+          if pr = info[/Merge pull request #(\d+) from /, 1] || info[SQUASH_REGEX, 1]
             exec "open", "https://github.com/#{origin}/pull/#{pr}"
           else
             warn "Unable to find PR number in #{info}"
@@ -63,13 +64,17 @@ module Git::Whence
       end
 
       def find_merge(commit)
-        commit, merge = (
+        merge_commit, merge = (
           find_merge_simple(commit, "HEAD") ||
           find_merge_simple(commit, "master") ||
           find_merge_fuzzy(commit, "master")
         )
 
-        merge if merge && merge_include_commit?(merge, commit)
+        if merge && merge_include_commit?(merge, merge_commit)
+          merge
+        else
+          find_squash_merge(commit) # not very exact, so do this last ... ideally ask github api
+        end
       end
 
       def merge_include_commit?(merge, commit)
@@ -83,6 +88,10 @@ module Git::Whence
         end
       end
 
+      def find_squash_merge(commit)
+        commit if sh("git show -s --format='%s' #{commit}") =~ SQUASH_REGEX
+      end
+
       def find_similar(commit, branch)
         month = 30 * 24 * 60 * 60
         time, search = sh("git show -s --format='%ct %an %s' #{commit}").strip.split(" ", 2)
@@ -93,8 +102,8 @@ module Git::Whence
       end
 
       def find_merge_simple(commit, branch)
-        result = sh "git log #{commit}..#{branch} --ancestry-path --merges --pretty='%H' 2>/dev/null | tail -n 1"
-        [commit, result.strip] unless result.strip.empty?
+        result = sh("git log #{commit}..#{branch} --ancestry-path --merges --pretty='%H' 2>/dev/null | tail -n 1").chomp
+        [commit, result] unless result.empty?
       end
 
       def sh(command)

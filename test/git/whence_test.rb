@@ -37,9 +37,16 @@ describe Git::Whence do
         _, @commit = add_merge :message => "Merge pull request #10486 from foo/baz"
       end
 
-      it "opens with -o" do
+      it "opens PR" do
         Git::Whence::CLI.expects(:exec).with("open", "https://github.com/foobar/barbaz/pull/10486")
         Git::Whence::CLI.run([@commit, "-o"])
+      end
+
+      it "opens squash PR" do
+        sh("git commit -am 'foo (#123)' --allow-empty")
+        commit = last_commits.first
+        Git::Whence::CLI.expects(:exec).with("open", "https://github.com/foobar/barbaz/pull/123")
+        Git::Whence::CLI.run([commit, "-o"])
       end
 
       it "fails when unable to find origin" do
@@ -120,7 +127,7 @@ describe Git::Whence do
         pick_commit(commit)
       end
 
-      it "finds by commit message" do
+      it "finds picked commit by commit message" do
         whence("HEAD").must_equal "#{@merge[0...7]} Merge branch 'foobar'\n"
       end
 
