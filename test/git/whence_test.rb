@@ -102,6 +102,13 @@ describe Git::Whence do
         whence(commit).must_equal "#{merge[0...7]} Merge branch 'foobar'\n"
       end
 
+      it "finds on non-default branch" do
+        init_git
+        sh("git co -b main")
+        merge, commit = add_merge
+        whence(commit).must_equal "#{merge[0...7]} Merge branch 'foobar'\n"
+      end
+
       it "fails with a mainline commit" do
         init_git
         3.times { |i| sh("echo #{i} > xxx && git commit -am 'xxx#{i}'") }
@@ -172,7 +179,7 @@ describe Git::Whence do
 
   # return merge commit and merged commit
   def add_merge(options={})
-    if message = options[:message]
+    if (message = options[:message])
       message = "-m '#{message}'"
     end
     branch = options[:branch] || "foobar"

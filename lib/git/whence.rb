@@ -4,6 +4,7 @@ require "optparse"
 module Git::Whence
   module CLI
     SQUASH_REGEX = /\(#(\d+)\)$/
+    DEFAULT_BRANCHES = ["main", "master"]
 
     class << self
       def run(argv)
@@ -66,8 +67,8 @@ module Git::Whence
       def find_merge(commit)
         merge_commit, merge = (
           find_merge_simple(commit, "HEAD") ||
-          find_merge_simple(commit, "master") ||
-          find_merge_fuzzy(commit, "master")
+          find_merge_simple(commit, default_branch) ||
+          find_merge_fuzzy(commit, default_branch)
         )
 
         if merge && merge_include_commit?(merge, merge_commit)
@@ -83,9 +84,27 @@ module Git::Whence
       end
 
       def find_merge_fuzzy(commit, branch)
-        if similar = find_similar(commit, branch)
+        if (similar = find_similar(commit, branch))
           find_merge_simple(similar, branch)
         end
+      end
+
+      def default_branch
+        @default_branch ||= remote_default_branch || local_default_branch
+      end
+
+      def remote_default_branch
+        remotes = sh("git remote").split("\n")
+        return nil if remotes.empty?
+        preferred = (remotes.include?("origin") ? "origin" : remotes.first)
+        folder = ".git/refs/remotes/#{preferred}"
+        (Dir["#{folder}/*"].map { |f| f.sub("#{folder}/", "") } & DEFAULT_BRANCHES).sort.first
+      end
+
+      # guess default branch by last changed commonly used default branch or current branch
+      def local_default_branch
+        branches = sh("git branch --sort=-committerdate").split("\n").map { |br| br.split(" ").last }
+        (branches & DEFAULT_BRANCHES).first || sh("git symbolic-ref HEAD").strip.sub("refs/heads/", "")
       end
 
       def find_squash_merge(commit)
@@ -98,7 +117,7 @@ module Git::Whence
         time = time.to_i
         same = sh("git log #{branch} --pretty=format:'%H %an %s' --before #{time + month} --after #{time - month}")
         found = same.split("\n").map { |x| x.split(" ", 2) }.detect { |_, message| message == search }
-        found && found.first
+        found&.first
       end
 
       def find_merge_simple(commit, branch)
