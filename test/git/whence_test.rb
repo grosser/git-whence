@@ -55,7 +55,7 @@ describe Git::Whence do
         _out, err = capture_subprocess_io do
           assert_raises(RuntimeError) { Git::Whence::CLI.run([@commit, "-o"]) }
         end
-        err.must_include "fatal: No such remote"
+        err.must_include "No such remote"
       end
 
       it "opens merge commit when merge has no PR number" do

@@ -6,16 +6,16 @@ PATH
 GEM
   remote: https://rubygems.org/
   specs:
-    bump (0.7.0)
-    maxitest (3.2.0)
-      minitest (>= 5.0.0, < 5.12.0)
-    metaclass (0.0.4)
-    minitest (5.11.3)
-    mocha (1.8.0)
-      metaclass (~> 0.0.1)
-    rake (12.3.1)
+    bump (0.10.0)
+    maxitest (5.5.0)
+      minitest (>= 5.14.0, < 5.24.0)
+    minitest (5.23.1)
+    mocha (2.4.0)
+      ruby2_keywords (>= 0.0.5)
+    rake (13.2.1)
     rubinjam (0.7.1)
       bundler
+    ruby2_keywords (0.0.5)
 
 PLATFORMS
   ruby
@@ -29,4 +29,4 @@ DEPENDENCIES
   rubinjam
 
 BUNDLED WITH
-   1.17.3
+   2.5.14
